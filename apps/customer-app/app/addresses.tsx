@@ -147,6 +147,8 @@ export default function AddressesScreen() {
   const [area, setArea] = useState('')
   // the last landmark the map filled in, so a typed one is never overwritten
   const autoLandmark = useRef('')
+  const autoLabel = useRef('')
+  const autoBuilding = useRef('')
 
   async function reverseGeocode(lat: number, lng: number, moved = false) {
     setGeocoding(true)
@@ -160,18 +162,21 @@ export default function AddressesScreen() {
       const street = addr.road || ''
       setArea(area)
       setForm(f => {
-        // A deliberate move refreshes the street, but only while the landmark is
-        // still the one we put there. Once the customer has typed their own, it
-        // is theirs: a nudge of the pin must not wipe what they wrote.
-        const ours = f.landmark === autoLandmark.current
-        const landmark = (moved && ours) || !f.landmark ? (street || f.landmark) : f.landmark
-        autoLandmark.current = landmark
-        return {
-          ...f,
-          label: f.label || area || 'عنوان جديد',
-          building: f.building || addr.house_number || '',
-          landmark,
+        // A deliberate move refreshes a field, but only while it still holds the value we
+        // put there. Once the customer has typed their own it is theirs, so a nudge of the
+        // pin must not wipe what they wrote. A geocode that comes back without the field
+        // never blanks it either — a missing house number leaves the old one standing.
+        const pick = (current: string, next: string, auto: { current: string }) => {
+          const ours = current === auto.current
+          const value = ((moved && ours) || !current) && next ? next : current
+          auto.current = value
+          return value
         }
+        const landmark = pick(f.landmark, street, autoLandmark)
+        const building = pick(f.building, addr.house_number || '', autoBuilding)
+        let label = pick(f.label, area, autoLabel)
+        if (!label) { label = 'عنوان جديد'; autoLabel.current = label }
+        return { ...f, label, building, landmark }
       })
     } catch {}
     setGeocoding(false)
@@ -207,6 +212,8 @@ export default function AddressesScreen() {
   function openAdd() {
     setArea('')
     autoLandmark.current = ''
+    autoLabel.current = ''
+    autoBuilding.current = ''
     setEditing(null)
     setForm({ label: '', building: '', floor: '', apartment: '', landmark: '', notes: '' })
     setPin({ latitude: defaultPin.current.latitude, longitude: defaultPin.current.longitude })
@@ -216,6 +223,11 @@ export default function AddressesScreen() {
   function openEdit(addr: any) {
     setArea('')
     autoLandmark.current = ''
+    // Seeded with what is saved, so moving the pin refreshes the area name and house
+    // number for the new spot instead of leaving the old ones standing. Nothing is
+    // written until the customer saves, and both fields stay editable in front of them.
+    autoLabel.current = addr.label || ''
+    autoBuilding.current = addr.building || ''
     setEditing(addr)
     setForm({
       label: addr.label || '',
