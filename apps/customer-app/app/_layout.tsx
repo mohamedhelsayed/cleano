@@ -1,7 +1,8 @@
 import { Component, useEffect, type ReactNode } from 'react'
 import { Slot } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { I18nManager, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { I18nManager, View, Text, TouchableOpacity, StyleSheet, AppState } from 'react-native'
+import * as Updates from 'expo-updates'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext'
 import { CartProvider } from '../src/contexts/CartContext'
@@ -100,6 +101,29 @@ function NotificationSetup() {
   return null
 }
 
+function useOTAUpdates() {
+  useEffect(() => {
+    if (__DEV__) return
+
+    async function checkAndApply() {
+      try {
+        const update = await Updates.checkForUpdateAsync()
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync()
+          await Updates.reloadAsync()
+        }
+      } catch (_) {}
+    }
+
+    checkAndApply()
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkAndApply()
+    })
+    return () => sub.remove()
+  }, [])
+}
+
 function SplashGate() {
   const { loading } = useAuth()
   useEffect(() => {
@@ -127,6 +151,8 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) {
     return null
   }
+
+  useOTAUpdates()
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
