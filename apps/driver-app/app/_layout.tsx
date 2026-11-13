@@ -51,20 +51,19 @@ function useOTAUpdates() {
   useEffect(() => {
     if (__DEV__) return
 
-    async function checkAndApply() {
+    async function fetchUpdate() {
       try {
         const update = await Updates.checkForUpdateAsync()
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync()
-          await Updates.reloadAsync()
         }
       } catch (_) {}
     }
 
-    checkAndApply()
+    fetchUpdate()
 
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') checkAndApply()
+      if (state === 'active') fetchUpdate()
     })
     return () => sub.remove()
   }, [])
