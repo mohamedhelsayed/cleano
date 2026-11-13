@@ -57,7 +57,7 @@ function useOTAUpdates() {
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync()
         }
-      } catch (_) {}
+      } catch {}
     }
 
     fetchUpdate()

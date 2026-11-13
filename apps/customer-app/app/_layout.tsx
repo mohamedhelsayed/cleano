@@ -111,7 +111,7 @@ function useOTAUpdates() {
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync()
         }
-      } catch (_) {}
+      } catch {}
     }
 
     fetchUpdate()
@@ -146,12 +146,13 @@ export default function RootLayout() {
     Alexandria_700Bold,
   })
 
+  // Must run before the early return below, or the hook count changes between renders.
+  useOTAUpdates()
+
   // The native splash is still showing here. If fonts fail, the app still opens with system fonts.
   if (!fontsLoaded && !fontError) {
     return null
   }
-
-  useOTAUpdates()
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
